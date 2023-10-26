@@ -1,10 +1,10 @@
+from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 from typing import Final
 from enum import Enum
 import math
 import numpy as np
 import sympy as s
-from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 SPACE_LIMIT: Final[float] = 5
@@ -40,16 +40,18 @@ class Color(Enum):
 class Mesh:
     points: [s.Matrix]
     color: Color
-    plotName: str
+    name: str
     faces: [(float, float)]
 
-    def __init__(self, points: [s.Matrix], color: Color, plotName: str, faces=None):
+    def __init__(self, points: [s.Matrix], color: Color, name: str, faces=None):
         if faces is None:
             faces = FACES
         self.points = points
         self.color = color
         self.faces = faces
-        self.plotName = plotName
+        if name is None:
+            name = "Mesh"
+        self.name = name
 
     def generatePolygons(self) -> [[]]:
         faces = []
@@ -61,7 +63,7 @@ class Mesh:
             faces.append(plane)
         return faces
 
-    def getNewPoints(self, m: s.Matrix):
+    def updatePoints(self, m: s.Matrix):
         points = []
 
         for i in range(len(self.points)):
@@ -70,16 +72,38 @@ class Mesh:
 
         self.points = points
 
+    def printPoints(self):
+        print(self.name + " coordinates are:")
+        for v in self.points:
+            print(list(v))
 
-def drawPlot(meshes: [Mesh], screenName: str, cameraPosition=None):
+
+class CameraPosition:
+    elev: float
+    azim: float
+    dist: float
+
+    def __init__(self, elev=30, azim=45, dist=10):
+        self.elev = elev
+        self.azim = azim
+        self.dist = dist
+
+
+def drawPlot(meshes: [Mesh], screenName: str, cameraPosition: CameraPosition = None):
     fig = plt.figure(figure=(7, 7))
-    ax = plt.axes(projection="3d")
+    # ax = plt.axes(projection="3d")
+    # ax = Axes3D(fig)
+    ax = fig.add_subplot(111, projection="3d")
+
+    if cameraPosition is not None:
+        ax.view_init(cameraPosition.elev, cameraPosition.azim)
+        ax.dist = cameraPosition.dist
 
     legend = []
     # Create mesh
     for mesh in meshes:
         drawMesh(ax, mesh)
-        legend.append(mesh.plotName)
+        legend.append(mesh.name)
 
     ax.set_xlim([-SPACE_LIMIT, SPACE_LIMIT])
     ax.set_ylim([-SPACE_LIMIT, SPACE_LIMIT])
@@ -89,8 +113,7 @@ def drawPlot(meshes: [Mesh], screenName: str, cameraPosition=None):
     ax.set_ylabel('Y')
     ax.set_zlabel('Z')
 
-    plt.legend(labels=legend)
-    ax.legend()
+    plt.gca().legend(legend)
     ax.grid()
 
     ax.set_title(screenName)
@@ -102,6 +125,7 @@ def getRotationMatrix(x=None, y=None, z=None) -> s.Matrix:
     rotations: [s.Matrix] = []
 
     if x is not None and x != 0:
+        x = x * s.pi / 180
         sin = s.sin(x)
         cos = s.cos(x)
         xR: s.Matrix = s.Matrix([[1, 0, 0, 0],
@@ -111,6 +135,7 @@ def getRotationMatrix(x=None, y=None, z=None) -> s.Matrix:
         rotations.append(xR)
 
     if y is not None and y != 0:
+        y = y * s.pi / 180
         sin = s.sin(y)
         cos = s.cos(y)
         yR: s.Matrix = s.Matrix([[cos, 0, sin, 0],
@@ -120,6 +145,7 @@ def getRotationMatrix(x=None, y=None, z=None) -> s.Matrix:
         rotations.append(yR)
 
     if z is not None and z != 0:
+        z = z * s.pi / 180
         sin = s.sin(z)
         cos = s.cos(z)
         zR: s.Matrix = s.Matrix([[cos, -sin, 0, 0],
@@ -139,11 +165,6 @@ def getRotationMatrix(x=None, y=None, z=None) -> s.Matrix:
     return m
 
 
-def generateCube(name: str = "КУБ", color: Color = Color.blue) -> Mesh:
-    mesh = Mesh(VERTICES, color, name, FACES)
-    return mesh
-
-
 def getMovingMatrix(x, y, z) -> s.Matrix:
     v = [x, y, z]
 
@@ -152,6 +173,25 @@ def getMovingMatrix(x, y, z) -> s.Matrix:
         m[i, 3] = v[i]
 
     return m
+
+
+def getPerspectiveMatrix(U, V, N, C) -> s.Matrix:
+    T: s.Matrix = s.eye(4)
+    vectors = [U, V, N]
+    array = [list(U), list(V), list(N)]
+
+    for i in range(3):
+        for j in range(3):
+            T[j, i] = array[i][j]
+
+        T[3, i] = -vectors[i].T * C
+
+    return T
+
+
+def generateCube(name: str = "КУБ", color: Color = Color.blue) -> Mesh:
+    mesh = Mesh(VERTICES, color, name, FACES)
+    return mesh
 
 
 def drawMesh(ax, mesh: Mesh):
