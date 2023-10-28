@@ -77,6 +77,10 @@ class Mesh:
         for v in self.points:
             print(list(v))
 
+    def moveTo(self, coords):
+        T: s.Matrix = getMovingMatrix(coords[0], coords[1], coords[2])
+        self.updatePoints(T)
+
 
 class CameraPosition:
     elev: float
@@ -103,7 +107,9 @@ def drawPlot(meshes: [Mesh], screenName: str, cameraPosition: CameraPosition = N
     # Create mesh
     for mesh in meshes:
         drawMesh(ax, mesh)
-        legend.append(mesh.name)
+
+        if mesh.name != "":
+            legend.append(mesh.name)
 
     ax.set_xlim([-SPACE_LIMIT, SPACE_LIMIT])
     ax.set_ylim([-SPACE_LIMIT, SPACE_LIMIT])
@@ -189,9 +195,32 @@ def getPerspectiveMatrix(U, V, N, C) -> s.Matrix:
     return T
 
 
-def generateCube(name: str = "КУБ", color: Color = Color.blue) -> Mesh:
+def generateCube(name: str = "КУБ", color: Color = Color.blue, scale=1) -> Mesh:
+    m: s.Matrix = s.eye(4) * scale
+    m[3, 3] = 1
     mesh = Mesh(VERTICES, color, name, FACES)
+
+    mesh.updatePoints(m)
     return mesh
+
+
+def generateThreeCubes() -> [s.Matrix]:
+    greenMesh = generateCube("green", color=Color.green)
+    blueMesh = generateCube("blue", color=Color.blue)
+    pinkMesh = generateCube("pink", color=Color.pink)
+
+    x45 = getRotationMatrix(x=45)
+    greenMesh.updatePoints(x45)
+
+    moveY = getMovingMatrix(0, -3, 0)
+    blueMesh.updatePoints(moveY)
+
+    moveYBack = getMovingMatrix(0, 3, 0)
+    z45 = getRotationMatrix(z=45)
+    pinkMesh.updatePoints(z45)
+    pinkMesh.updatePoints(moveYBack)
+
+    return [blueMesh, greenMesh, pinkMesh]
 
 
 def drawMesh(ax, mesh: Mesh):
