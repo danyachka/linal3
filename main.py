@@ -1,76 +1,90 @@
+import random
+
 from ipywidgets import interact
 import ipywidgets as widgets
 import matplotlib
 import sympy as s
-import utils as u
+import utils
 
 
 def firstTask():
-    mesh = u.generateCube()
-    u.drawPlot([mesh], "Задание №1")
+    mesh = utils.generateCube()
+    utils.drawPlot([mesh], "Задание №1")
 
 
 def secondTask():
     scale = 1.5
-    mesh = u.generateCube()
-    newMesh = u.generateCube(color=u.Color.pink)
+    mesh = utils.generateCube()
+    newMesh = utils.generateCube(color=utils.Color.pink)
 
     m: s.Matrix = scale * s.eye(4)
     m[3, 3] = 1
 
     newMesh.updatePoints(m)
-    u.drawPlot([mesh, newMesh], "Задание №2")
+    utils.drawPlot([mesh, newMesh], "Задание №2")
 
 
 def thirdTask():
-    mesh = u.generateCube()
-    newMesh = u.generateCube(color=u.Color.pink)
+    mesh = utils.generateCube()
+    newMesh = utils.generateCube(color=utils.Color.pink, name="Moved")
 
-    m: s.Matrix = u.getMovingMatrix(-3, 0, 0)
+    m: s.Matrix = utils.getMovingMatrix(-3, 0, 0)
     newMesh.updatePoints(m)
 
-    u.drawPlot([mesh, newMesh], "Задание №3")
+    scaledMesh = utils.generateCube(color=utils.Color.pink, name="Moved and scaled cube")
+    m: s.Matrix = utils.getMovingMatrix(0, 3, 0)
+    scaledMesh.updatePoints(m)
+    scale = 1.5
+    sm: s.Matrix = scale * s.eye(4)
+    sm[3, 3] = 1
+    scaledMesh.updatePoints(sm)
+    scaledMesh.printPoints()
+
+    camera = utils.CameraPosition(0, 0, 10)
+
+    utils.drawPlot([mesh, newMesh, scaledMesh], "Задание №3")
+    utils.drawPlot([mesh, newMesh, scaledMesh], "Задание №3", cameraPosition=camera)
 
 
 # В трёх плоскостях
 # На вики
 def fourthTask():
-    matrix: s.Matrix = u.getRotationMatrix(z=45)
+    matrix: s.Matrix = utils.getRotationMatrix(z=45)
 
-    mesh = u.generateCube(color=u.Color.pink, name="Rotated cube")
+    mesh = utils.generateCube(color=utils.Color.pink, name="Rotated cube")
     mesh.updatePoints(matrix)
 
-    u.drawPlot([mesh], "Задание №4")
+    utils.drawPlot([mesh], "Задание №4")
 
 
 def fifthTask():
-    rotationMatrix: s.Matrix = u.getRotationMatrix(x=90, z=90)
+    rotationMatrix: s.Matrix = utils.getRotationMatrix(x=45, z=135)
 
-    mesh = u.generateCube()
-    newMesh = u.generateCube(color=u.Color.pink)
+    mesh = utils.generateCube()
+    newMesh = utils.generateCube(color=utils.Color.pink)
 
     pnt = list(newMesh.points[0])
-    movingMatrix: s.Matrix = u.getMovingMatrix(-pnt[0], -pnt[1], -pnt[2])
+    movingMatrix: s.Matrix = utils.getMovingMatrix(-pnt[0], -pnt[1], -pnt[2])
 
     finalMatrix: s.Matrix = movingMatrix.inv() * rotationMatrix * movingMatrix
 
     newMesh.updatePoints(finalMatrix)
 
     def plot_func(freq):
-        u.drawPlot([mesh, newMesh], "Задание №5")
+        utils.drawPlot([mesh, newMesh], "Задание №5")
 
     interact(plot_func, freq=widgets.FloatSlider(value=7.5, min=1, max=10, step=0.5))
 
 
 def sixthTask():
     # Сначала "опустим" камеру для большей наглядности
-    camera = u.CameraPosition(0, 0, 10)
+    camera = utils.CameraPosition(0, 0, 10)
 
-    meshes = u.generateThreeCubes()
+    meshes = utils.generateThreeCubes()
 
     def plot_func(freq):
         # Обычная отрисовка сцены
-        u.drawPlot(meshes, "Задание №6", camera)
+        utils.drawPlot(meshes, "Задание №6", camera)
 
         # С применением видовой матрицы
         # вектор перемещения (Сейчас камера на (10, 0, 0)
@@ -84,21 +98,21 @@ def sixthTask():
         # Таким образом матрица T поворачивает камеру на 45
         # градусов в плоскости xOy и осуществляет перенос на 10 по x
 
-        T: s.Matrix = u.getPerspectiveMatrix(U, V, N, C).T
+        T: s.Matrix = utils.getPerspectiveMatrix(U, V, N, C).T
         print(T)
 
         for mesh in meshes:
             mesh.updatePoints(T)
-        u.drawPlot(meshes, "Задание №6", camera)
+        utils.drawPlot(meshes, "Задание №6", camera)
 
     interact(plot_func, freq=widgets.FloatSlider(value=7.5, min=1, max=10, step=0.5))
 
 
 def seventhTask():
-    frontCameraView = u.CameraPosition(0, 0, 10)
-    camera = u.CameraPosition()
+    frontCameraView = utils.CameraPosition(0, 0, 10)
+    camera = utils.CameraPosition()
 
-    meshes = u.generateThreeCubes()
+    meshes = utils.generateThreeCubes()
 
     T: s.Matrix = s.eye(4)
     T[0, 3] = -0.05
@@ -107,26 +121,30 @@ def seventhTask():
 
     def plot_func(freq):
         # Обычная отрисовка сцены
-        u.drawPlot(meshes, "Задание №7, без проецирования", frontCameraView)
-        u.drawPlot(meshes, "Задание №7, без проецированием, вид сбоку", camera)
+        utils.drawPlot(meshes, "Задание №7, без проецирования", frontCameraView)
+        utils.drawPlot(meshes, "Задание №7, без проецированием, вид сбоку", camera)
 
         # Применяем матрицу проецирования
         for mesh in meshes:
             mesh.updatePoints(T)
 
-        u.drawPlot(meshes, "Задание №7, с проецированием", frontCameraView)
+        utils.drawPlot(meshes, "Задание №7, с проецированием", frontCameraView)
 
-        u.drawPlot(meshes, "Задание №7, с проецированием, вид сбоку", camera)
+        utils.drawPlot(meshes, "Задание №7, с проецированием, вид сбоку", camera)
 
     interact(plot_func, freq=widgets.FloatSlider(value=7.5, min=1, max=10, step=0.5))
 
 
 def eighthTask():
-    camera = u.CameraPosition(0, 0, 10)
-    camera2 = u.CameraPosition(0, -90, 10)
+    camera = utils.CameraPosition(0, 0, 10)
+    camera2 = utils.CameraPosition(0, -90, 10)
 
-    def getCube(color=u.Color.green) -> u.Mesh:
-        mesh = u.generateCube("", color, 0.5)
+    colors = [utils.Color.green, utils.Color.pink]
+
+    def getCube(color=None) -> utils.Mesh:
+        if color is None:
+            color = colors[random.randint(0, len(colors) - 1)]
+        mesh = utils.generateCube("", color, 0.5)
         return mesh
 
     cubes = []
@@ -175,7 +193,7 @@ def eighthTask():
 
     for i in range(7):
         for j in range(7):
-            cube = getCube(color=u.Color.blue)
+            cube = getCube(color=utils.Color.blue)
             cube.moveTo(roof)
             cubes.append(cube)
 
@@ -184,9 +202,9 @@ def eighthTask():
         roof[0] += 1
         roof[1] = -3
 
-    u.drawPlot(cubes, "Задание №8")
-    u.drawPlot(cubes, "Задание №8", cameraPosition=camera)
-    u.drawPlot(cubes, "Задание №8", cameraPosition=camera2)
+    utils.drawPlot(cubes, "Задание №8")
+    utils.drawPlot(cubes, "Задание №8", cameraPosition=camera)
+    utils.drawPlot(cubes, "Задание №8", cameraPosition=camera2)
 
 
 if __name__ == "__main__":
@@ -196,5 +214,5 @@ if __name__ == "__main__":
     # fourthTask()
     # fifthTask()
     # sixthTask()
-    # seventhTask()
+    seventhTask()
     eighthTask()
